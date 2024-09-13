@@ -1,0 +1,102 @@
+from IPython.display import clear_output
+import time
+class Agent:
+    def __init__(self, initial_position):
+        #self.initial_position=initial_position
+        self.position_history = [[initial_position.copy()[0],initial_position.copy()[1]]]
+        
+    def update_position(self, new_position=None,wipe=None):
+        if (new_position is not None) :
+            new_position_tuple = tuple(new_position)
+            # Convert position_history elements to tuples for comparison
+            if new_position_tuple not in [tuple(pos) for pos in self.position_history]:
+                self.position_history.append(new_position.copy())
+        if wipe==True:
+            self.position_history=[]
+        return(self.position_history)
+                                     
+    def act(self, percept_action): 
+        
+        if percept_action==1:
+            return('suck')
+        else:
+            return(np.random.choice(["north", "east", "west", "south"]))
+def agent_environment(agent_act,agent_update_position,initial_position_agent,env_agent, n): 
+    while len(agent_update_position())!=25:
+        num_cleaned=0
+        agent_position=initial_position_agent.copy()
+        env=env_agent.copy()
+
+
+
+        for i in range(n):
+            action_valid = False
+            stop_outer_loop = False
+            print("Step", i)
+            if env[agent_position[0],agent_position[1]]==0:
+                print("  Environment: Agent's action is in position", agent_position, "and the position is clean")
+
+            elif env[agent_position[0],agent_position[1]]==1:
+                print("  Environment: Agent's action is in position", agent_position, "and the position is dirty")
+            action=agent_act(env[agent_position[0],agent_position[1]])
+            print(action)
+            if action=='suck':
+                print('Action chosen:',action)
+                num_cleaned += 1
+                env[agent_position[0], agent_position[1]] = 0
+                print('agent cleaned the spot')
+            else:
+                start_time = time.time() #if the agent is trapped, break the loop
+                while not action_valid:
+                    if (action == 'north' and agent_position[0] > 0) and ([agent_position[0]-1,agent_position[1]] not in agent_update_position()):  
+
+                        agent_position[0] -= 1
+                        action_valid = True
+
+                    elif (action == 'south' and agent_position[0] < 4) and ([agent_position[0]+1,agent_position[1]] not in agent_update_position()):  
+                        agent_position[0] += 1                                 
+                        action_valid = True
+
+                    elif (action == 'east' and agent_position[1] < 4) and ([agent_position[0],agent_position[1]+1] not in agent_update_position()):  
+
+                        agent_position[1] += 1                                     
+                        action_valid = True
+
+                    elif (action == 'west' and agent_position[1] > 0) and ([agent_position[0],agent_position[1]-1] not in agent_update_position()):  
+
+                        agent_position[1] -= 1                     
+                        action_valid = True
+                    else:
+
+
+                        current_time = time.time()
+                        elapsed_time = current_time - start_time
+                        if elapsed_time > 1:  # Break if more than 3 seconds have passed
+                            print(f"Breaking the loop after {elapsed_time:.2f} seconds.")
+                            action_valid = True
+                            stop_outer_loop = True
+                            break
+                        elif elapsed_time < 1:   
+                            action=agent_act(env[agent_position[0],agent_position[1]]) 
+                print('Action chosen:',action)
+                print('The agent history so far is:',agent_update_position())
+                print('agent sweeps', len(agent_update_position()))
+                agent_update_position([agent_position[0],agent_position[1]])
+
+            print('number of dirty squares are', np.sum(env))
+            print('performance measure is', n - i-1)
+            print('-' * 30)
+            if stop_outer_loop:
+                break
+        if  len(agent_update_position())!=25:
+            print(len(agent_update_position()))
+            agent_update_position(wipe=True)
+            clear_output()
+            
+
+
+
+    return print('agent successfully cleaned', num_cleaned, "number of squares, the environment matrix is:", '\n', env)
+    
+agent1 = Agent(initial_position_agent)
+agent_environment(agent1.act,agent1.update_position,initial_position_agent,env_agent, max_steps1)
