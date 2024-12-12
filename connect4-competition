@@ -1,0 +1,130 @@
+import numpy as np
+import random
+
+ROWS = 4 # Set number of rows for 4x4 board
+COLS = 4 # Set number of columns for 4x4 board
+PLAYER1 = 1
+PLAYER2 = -1
+
+# Function to create an empty board
+def create_board():
+    return np.zeros((ROWS, COLS))
+
+# Function to check if the column is valid
+def is_valid_location(board, col):
+    return board[ROWS-1][col] == 0
+
+# Function to get the next open row in a column
+def get_next_open_row(board, col):
+    for r in range(ROWS):
+        if board[r][col] == 0:
+            return r
+
+# Function to place a disc on the board
+def drop_piece(board, row, col, piece):
+    board[row][col] = piece
+
+# Function to check for a win
+def is_winning_move(board, piece):
+    # Check horizontal, vertical, and both diagonals for 4x4
+    for r in range(ROWS):
+        for c in range(COLS-3): # Check horizontally
+            if board[r][c] == piece and board[r][c+1] == piece and board[r][c+2] == piece and board[r][c+3] == piece:
+                return True
+    for r in range(ROWS-3):
+        for c in range(COLS): # Check vertically
+            if board[r][c] == piece and board[r+1][c] == piece and board[r+2][c] == piece and board[r+3][c] == piece:
+                return True
+    for r in range(ROWS-3):
+        for c in range(COLS-3): # Check positive diagonals
+            if board[r][c] == piece and board[r+1][c+1] == piece and board[r+2][c+2] == piece and board[r+3][c+3] == piece:
+                return True
+    for r in range(3, ROWS):
+        for c in range(COLS-3): # Check negative diagonals
+            if board[r][c] == piece and board[r-1][c+1] == piece and board[r-2][c+2] == piece and board[r-3][c+3] == piece:
+                return True
+    return False
+
+# Monte Carlo simulation function
+def monte_carlo_simulation(board, piece, simulations):
+    wins = 0
+    for _ in range(simulations):
+        temp_board = board.copy()
+        current_piece = piece
+
+        while True:
+            valid_locations = [c for c in range(COLS) if is_valid_location(temp_board, c)]
+            if not valid_locations:
+                break # Draw if no valid moves left
+
+            # Choose a random valid column to drop a piece
+            col = random.choice(valid_locations)
+            row = get_next_open_row(temp_board, col)
+            drop_piece(temp_board, row, col, current_piece)
+
+            if is_winning_move(temp_board, current_piece):
+                if current_piece == PLAYER1:
+                    wins += 1 # Increment wins for PLAYER1
+                break # End the simulation if there's a win
+
+            # Switch pieces
+            current_piece = PLAYER1 if current_piece == PLAYER2 else PLAYER2
+
+    return wins
+
+# Function to get the best move using Monte Carlo Search
+def get_best_move(board, piece, simulations_per_move):
+    valid_locations = [c for c in range(COLS) if is_valid_location(board, c)]
+    best_move = None
+    best_win_rate = -1
+
+    for col in valid_locations:
+        row = get_next_open_row(board, col)
+        temp_board = board.copy()
+        drop_piece(temp_board, row, col, piece)
+
+        # Simulate the rest of the game from this position
+        wins = monte_carlo_simulation(temp_board, PLAYER2, simulations_per_move)
+
+        # Calculate win rate
+        win_rate = wins / simulations_per_move
+        if win_rate > best_win_rate:
+            best_win_rate = win_rate
+            best_move = col
+
+    return best_move
+
+def play_game():
+    board = create_board()
+    game_over = False
+    turn = 0 # 0 for Player 1, 1 for Player 2
+    simulations_per_move = 100 # Number of simulations per move
+
+    while not game_over:
+        current_player = PLAYER1 if turn % 2 == 0 else PLAYER2
+
+        # Get the best move using Monte Carlo Search
+        col = get_best_move(board, current_player, simulations_per_move)
+
+        # Drop the piece on the board
+        if col is not None: # Check if a valid column was found
+            row = get_next_open_row(board, col)
+            
+            drop_piece(board, row, col, current_player)
+
+            # Print the current board
+            visualize(np.flip(board, 0)) # Visualize the board
+
+            # Check for win or draw
+            if is_winning_move(board, current_player):
+                print(f"Player {current_player} wins!")
+                game_over = True
+            elif np.all(board != 0): # Check for draw
+                print("It's a draw!")
+                game_over = True
+
+            # Switch turns
+            turn += 1
+
+# Start the game
+play_game()
